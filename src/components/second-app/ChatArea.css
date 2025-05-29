@@ -1,0 +1,87 @@
+/* ChatArea.css */
+.welcome-container {
+    max-width: 800px;
+    margin: 60px auto;
+    text-align: center;
+    padding: 20px;
+}
+
+.welcome-container h1 {
+    font-size: 28px;
+    margin-bottom: 40px;
+    color: #343541;
+}
+
+.getting-started {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+    text-align: left;
+}
+
+.step {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.step h3 {
+    font-size: 16px;
+    margin-bottom: 10px;
+    color: #343541;
+}
+
+.step p {
+    color: #6b7280;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.messages-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding-bottom: 80px;
+    /* Space for input */
+}
+
+
+.typing-indicator {
+    display: flex;
+    padding: 12px 0;
+    margin-left: 50px;
+}
+
+.typing-indicator .dot {
+    width: 8px;
+    height: 8px;
+    background-color: #b0b0b0;
+    border-radius: 50%;
+    margin: 0 3px;
+    animation: typing-animation 1s infinite ease-in-out;
+}
+
+.typing-indicator .dot:nth-child(1) {
+    animation-delay: 0s;
+}
+
+.typing-indicator .dot:nth-child(2) {
+    animation-delay: 0.2s;
+}
+
+.typing-indicator .dot:nth-child(3) {
+    animation-delay: 0.4s;
+}
+
+@keyframes typing-animation {
+
+    0%,
+    60%,
+    100% {
+        transform: translateY(0);
+    }
+
+    30% {
+        transform: translateY(-5px);
+    }
+}

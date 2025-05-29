@@ -1,0 +1,90 @@
+    .message {
+        display: flex;
+        padding: 20px 0;
+        border-bottom: 1px solid #f0f0f0;
+        /* border: 5px sloid #6c7b96; */
+        font-weight: 500;
+        font-size: 14px;
+    }
+
+    .user-message {
+        background-color: white;
+        border-radius: 20px;
+        margin: 5px;
+        box-shadow: 14px 17px 40px 4px rgba(112, 144, 176, 0.08);
+    }
+
+    .assistant-message {
+        border-radius: 20px;
+        background-color: white;
+        margin: 5px;
+        box-shadow: 14px 17px 40px 4px rgba(112, 144, 176, 0.08);
+    }
+
+    .error-message {
+        background-color: #fff1f0;
+        border-radius: 20px;
+        margin: 5px;
+        box-shadow: 14px 17px 40px 4px rgba(112, 144, 176, 0.08);
+    }
+
+    .message-avatar {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 16px;
+        flex-shrink: 0;
+        font-weight: bold;
+    }
+
+    .user-message .message-avatar {
+        background-color: #6b7280;
+        color: white;
+        margin-left: 7px;
+    }
+
+    .assistant-message .message-avatar {
+        background-color: #fcad1e;
+        color: white;
+        font-size: 11px;
+        margin-left: 7px;
+    }
+
+    .error-message .message-avatar {
+        background-color: #f56565;
+        color: white;
+        margin-left: 7px;
+    }
+
+    .message-content {
+        flex-grow: 1;
+        line-height: 1.6;
+    }
+
+    .message-content p {
+        margin-bottom: 16px;
+    }
+
+    .message-content p:last-child {
+        margin-bottom: 0;
+    }
+
+    .code-block {
+        background-color: #f7f7f7;
+        padding: 12px;
+        border-radius: 6px;
+        font-family: 'Courier New', Courier, monospace;
+        overflow-x: auto;
+        margin: 12px 0;
+        font-size: 14px;
+        border: 1px solid #e5e5e5;
+    }
+
+    .message-timestamp {
+        font-size: 12px;
+        color: #9ca3af;
+        margin-top: 8px;
+    }
