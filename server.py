@@ -8,9 +8,6 @@ import random
 import spacy
 from spacy.lang.en.stop_words import STOP_WORDS
 import numpy as np
-from tensorflow.keras.models import load_model
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-from tensorflow.keras.preprocessing.text import Tokenizer
 import pickle
 
 openai_client = openai.OpenAI(
@@ -20,11 +17,7 @@ openai_client = openai.OpenAI(
 
 app = FastAPI()
 
-nlp = spacy.load("en_core_web_sm")
 
-cnn_model = load_model("bail_cnn_model.h5")
-with open("tokenizer.pickle", "rb") as f:
-    tokenizer = pickle.load(f)
     
 def format_messages_as_prompt(messages: list[dict]) -> str:
     return "\n".join(f"{m['role']}: {m['content']}" for m in messages)
@@ -72,8 +65,8 @@ def extract_info(messages: list[dict]) -> str:
     message_chain = messages[1:] if messages[0]['role'] == 'system' else messages
     input_prompt = format_messages_as_prompt(message_chain)
     extracted_info = openai_client.chat.completions.create(
-        # model="./phi-4_fine_tuned",
-        model="microsoft/phi-4",
+        model="./data/phi-4_fine_tuned",
+        # model="microsoft/phi-4",
         messages=[
             {"role": "system", "content": EXTRACTION_INSTRUCTION},
             {"role": "user", "content": input_prompt}
@@ -85,21 +78,57 @@ def extract_info(messages: list[dict]) -> str:
     )
     return extracted_info.choices[0].message.content
 
-def preprocess_text(text):
-    doc = nlp(text)
-    tokens = [token.lemma_ for token in doc if not token.is_stop]
-    return " ".join(tokens)
+def predict_score(input_text: str) -> float:
+    system = "look at the details of the case provided to you in the paragraph and predict the outcome of the bail application by outputting `0` or `1`."+" If the case type is 'regular-bail' or 'anticipatory-bail' application, output `0` if bail will not be granted and `1` if bail will be granted."+" If the case type is 'bail-cancellation' application, output `0` if bail will not be cancelled and `1` if bail will be cancelled."+" Do not output anything else."
+    
+    response = openai_client.chat.completions.create(
+        model="./data/phi-4_fine_tuned",
+        messages=[
+            {"role": "user", "content": system},
+            {"role": "assistant", "content": f" {input_text}\nPrediction:"}
+        ],
+        temperature=0.0,
+        max_tokens=1,
+        logprobs=True,
+        stop=None
+    )
+    logprobs_content = response.choices[0].logprobs.content
+    tokens = []
+    token_logprobs = []
+    for tok in logprobs_content:
+        tokens.append(tok.token)
+        token_logprobs.append(tok.logprob)
+    token_probs = [float(np.exp(lp)) for lp in token_logprobs]
+    
+    # # Get top_logprobs for first step:
+    # first_top_logprobs = logprobs_content[0].top_logprobs  # Dictionary: token string -> logprob
+    # print(response.choices[0].logprobs)
 
-def preprocess_cnn_input(text):
-    # Tokenize and pad the input text
-    sequence = tokenizer.texts_to_sequences([text])
-    padded_sequence = pad_sequences(sequence, maxlen=500, padding='post', truncating='post')
-    return padded_sequence
+    # # Clean all possible representations for '0' and '1' (sometimes there's leading space or byte prefix)
+    # prob_0 = None
+    # prob_1 = None
+    # for tok, logp in first_top_logprobs.items():
+    #     cleaned = tok.strip().replace("Ġ", "")  # Adjust as needed for your tokenizer
+    #     if cleaned == "0":
+    #         prob_0 = float(np.exp(logp))
+    #     elif cleaned == "1":
+    #         prob_1 = float(np.exp(logp))
 
-def predict_outcome(text):
-    processed_input = preprocess_cnn_input(text)
-    prediction = cnn_model.predict(processed_input)
-    return prediction[0][0]
+    # print(f"Probability '0': {prob_0}")
+    # print(f"Probability '1': {prob_1}")
+    
+    # Debug print for all generated tokens and their probabilities
+    for i, (token, prob) in enumerate(zip(tokens, token_probs)):
+        print(f"Token {i+1}: '{token}' -- Probability: {prob:.4f}")
+    
+    # Find first token that is 0 or 1 (as string)
+    for t, p in zip(tokens, token_probs):
+        candidate = t.strip()
+        if candidate in ["0", "1"]:
+            return candidate, p
+    # fallback
+    return tokens[0].strip(), token_probs[0]
+    
 
 @app.websocket("/chat")
 async def chat(websocket: WebSocket):
@@ -119,33 +148,35 @@ async def chat(websocket: WebSocket):
             except Exception as e:
                 print(f"Error receiving message: {repr(e)}")
                 return
+
+            # input extraction for confidence score
+            try:
+                input_for_score = extract_info(message_chain)
+                print(f"Input to scoring model: {input_for_score}")
+            except Exception as e:
+                print(f"Error in extract_info(): {e}")
+                await websocket.send_text("Error processing message. Please try again.")
+                continue
             
-            ## cnn input extraction
-            # try:
-            #     input_to_cnn = extract_info(message_chain)
-            #     print(f"Input to CNN: {input_to_cnn}")
-            # except Exception as e:
-            #     print(f"Error in extract_info(): {e}")
-            #     await websocket.send_text("Error processing message. Please try again.")
-            #     continue
-            
-            # ## cnn score prediction
-            # input_to_cnn = preprocess_text(input_to_cnn)
-            # ## load cnn model here and predict
-            # confidence_score = predict_outcome(input_to_cnn) 
-            
-            # try:
-            #     score = json.dumps({"type": "confidence_score", "value": float(confidence_score)})
-            #     await websocket.send_text(score)
-            # except Exception as e:
-            #     print(f"Error sending confidence score: {e}")
-            #     print(type(score), score)
-            #     continue
+            ## cnn score prediction
+            # input_for_score = preprocess_text(input_for_score)
+            ## load cnn model here and predict
+            prediction, confidence_score = predict_score(input_for_score)
+            # print(f"Prediction: {prediction}, Confidence Score: {confidence_score}")
+
+            try:
+                score = json.dumps({"type": "confidence_score", "value": float(confidence_score)})
+                await websocket.send_text(score)
+            except Exception as e:
+                print(f"Error sending confidence score: {e}")
+                print(type(score), score)
+                continue
             
             try:
+                message_chain[-1]['content'] += f"\n\nAvailable information:\n{input_for_score}"
                 stream = openai_client.chat.completions.create(
-                    # model="./phi-4_fine_tuned",
-                    model="microsoft/phi-4",
+                    model="./data/phi-4_fine_tuned",
+                    # model="microsoft/phi-4",
                     messages=message_chain,
                     temperature=0.7,
                     stream=True
@@ -172,6 +203,3 @@ async def chat(websocket: WebSocket):
         traceback.print_exc()
         print(f"Error: {e}")
     
-
-
-
