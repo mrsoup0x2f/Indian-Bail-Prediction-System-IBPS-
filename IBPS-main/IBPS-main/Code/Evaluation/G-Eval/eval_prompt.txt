@@ -1,0 +1,33 @@
+Instructions:
+You are an expert in legal text evaluation. You will be given:
+
+A full case judgement text that is the source of all the information.
+An expert evaluated text that has all the detail of the case extracted from the full case text that serves as the reference.
+A machine generated text after extracting all the details of the case from the full case text that needs to be evaluated.
+Your task is to assess how well the machine generated text aligns with the given description while using the actual document as a reference for correctness.
+
+Evaluation Criteria (Unified Score: 1-10)
+Your evaluation should be based on the following factors:
+
+Factual Accuracy (50%) – Does the generated text correctly represent the key legal facts, reasoning, and outcomes from the full case text, as expected from the description?
+Completeness & Coverage (30%) – Does it include all crucial legal arguments, case details, and necessary context that the expert evaluated text implies?
+Clarity & Coherence (20%) – Is the text well-structured, logically presented, and legally sound?
+
+Scoring Scale:
+1-3 → Highly inaccurate, major omissions or distortions, poorly structured.
+4-6 → Somewhat accurate but incomplete, missing key legal reasoning or context.
+7-9 → Mostly accurate, well-structured, with minor omissions or inconsistencies.
+10 → Fully aligned with the description, factually accurate, complete, and coherent.
+
+Input Format:
+Full case text:
+{{full_case}}
+
+Expert Evaluated Text (Reference):
+{{Actual_Document}}
+
+Machine Generated Text (To Be Evaluated):
+{{Generated_Document}}
+
+Output Format:
+Strictly provide only a single integer score (1-10) as the response, with no explanations, comments, or additional text.
